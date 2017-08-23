@@ -3,9 +3,23 @@ package pub.sha0w.nifi.processors.model;
 import pub.sha0w.nifi.processors.DemoDuplicateRemoveProcessor;
 
 public class DuliModel {
-    private DuliModel(String in){
-        mainKey = Key.valueOf(split(in)[0]);
-        vagueKey = Key.valueOf(split(in)[1]);
+    public DuliModel(String in){
+        String[] temp = split(in);
+        if (temp.length == 2) {
+            mainKey = Key.valueOf(temp[0]);
+            vagueKey = Key.valueOf(split(in)[1]);
+        } else if (temp.length == 1){
+            if (in.charAt(0) == ';') {
+                mainKey = Key.valueOf("");
+                vagueKey = Key.valueOf(temp[0]);
+            } else {
+                mainKey = Key.valueOf(temp[0]);
+                vagueKey = Key.valueOf("");
+            }
+        } else {
+            mainKey = Key.valueOf("");
+            vagueKey = Key.valueOf("");
+        }
     }
     private Key mainKey;
     private Key vagueKey;
@@ -19,6 +33,10 @@ public class DuliModel {
     }
     private String[] split(String in) {
         return in.split(";");
+    }
+
+    public static DuliModel valueOf(String s) {
+        return new DuliModel(s);
     }
 
     public static DuliModel valueOf(DemoDuplicateRemoveProcessor.MODEL_ENUM model_enum) {

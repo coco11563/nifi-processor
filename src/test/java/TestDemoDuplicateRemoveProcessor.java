@@ -7,13 +7,16 @@ import org.junit.Test;
 import pub.sha0w.nifi.processors.DemoDuplicateRemoveProcessor;
 
 public class TestDemoDuplicateRemoveProcessor {
-    static TestRunner testRunner = TestRunners.newTestRunner(new DemoDuplicateRemoveProcessor());
-    @Before
-    public void init(){
-        testRunner.setProperty(DemoDuplicateRemoveProcessor.MODEL, DemoDuplicateRemoveProcessor.MODEL.getAllowableValues().get(0));
-    }
+    /**
+     * test passed
+     */
     @Test
     public void initTest() {
-        testRunner.run();
+        TestRunner testRunner = TestRunners.newTestRunner(new DemoDuplicateRemoveProcessor());
+        testRunner.setProperty(DemoDuplicateRemoveProcessor.FIELD, "url;TITLE,AUTHOR,YEAR");
+        for (AllowableValue allowableValue : DemoDuplicateRemoveProcessor.MODEL.getAllowableValues()) {
+            testRunner.setProperty(DemoDuplicateRemoveProcessor.MODEL, allowableValue);
+            testRunner.run();
+        }
     }
 }

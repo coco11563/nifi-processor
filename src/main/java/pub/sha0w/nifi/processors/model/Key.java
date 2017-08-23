@@ -11,7 +11,6 @@ public class Key {
     private static String[] split(String in) {
         return in.split(",");
     }
-
     public String[] getMain() {
         return main;
     }
