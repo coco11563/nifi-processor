@@ -16,9 +16,7 @@ public class TestMillionMap {
             index ++;
         }
         long start = System.currentTimeMillis();
-        for (int i = 0 ; i < 3000000 ; i ++) {
-            map.get(String.valueOf(i));
-        }
+            map.get(String.valueOf(1));
         System.out.println(System.currentTimeMillis() - start);
     }
     @Test

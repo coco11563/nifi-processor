@@ -19,11 +19,11 @@ public class TestRedisDup {
     private Map<String, String> localCache = new HashMap<>();
     @Before
     public void initConn() {
-        try {
-            new TestInitRedis().init();
-        } catch (SQLException | ClassNotFoundException e) {
-            e.printStackTrace();
-        }
+//        try {
+////            new TestInitRedis().init();
+//        } catch (SQLException | ClassNotFoundException e) {
+//            e.printStackTrace();
+//        }
         redis = new Jedis("localhost", 32768, 40000000);
         redis.select(0);
     }
@@ -144,7 +144,7 @@ public class TestRedisDup {
     /**
      * 这俩重复了，需要在之后的步骤中合并
      * @param compareIndex 需要修改的索引
-     * @param index 修改的值
+     * @param index 修改的值h
      */
     private void dupToSupplement(String index, String compareIndex) {
         dup ++;

@@ -23,7 +23,25 @@ public class DuliModel {
     }
     private Key mainKey;
     private Key vagueKey;
-
+    public String getArgs() {
+        StringBuilder sb = new StringBuilder();
+        for (String s : mainKey.getMain()) {
+            if (s.contains("&")) {
+                String[] temp = s.split("&");
+                for (String t : temp) {
+                    sb.append(t).append(",");
+                }
+            } else {
+                sb.append(s).append(",");
+            }
+        }
+        for (String s : vagueKey.getMain()) {
+            sb.append(s).append(",");
+        }
+        String ret = sb.toString();
+        String r = ret.substring(0, ret.length() - 1);
+        return r;
+    }
     public Key getVagueKey() {
         return vagueKey;
     }
