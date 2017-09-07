@@ -1,6 +1,6 @@
 package pub.sha0w.nifi.processors.model;
 
-import pub.sha0w.nifi.processors.DemoDuplicateRemoveProcessor;
+import pub.sha0w.nifi.processors.useless.DemoDuplicateRemoveProcessor;
 
 public class DuliModel {
     public DuliModel(String in){

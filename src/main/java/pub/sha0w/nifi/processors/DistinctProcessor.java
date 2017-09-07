@@ -1,6 +1,9 @@
 package pub.sha0w.nifi.processors;
 
 
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.TriggerSerially;
+import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -11,11 +14,9 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.*;
-import java.util.logging.Logger;
 
 /**
  * you need to provide input hive table
@@ -24,6 +25,9 @@ import java.util.logging.Logger;
  * and delete them
  * then using sparkSQL to insert into hive table
  */
+@Tags({"Spark","Distinct","shell"})
+@TriggerSerially
+@InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 public class DistinctProcessor extends AbstractProcessor {
     private final org.slf4j.Logger logger = LoggerFactory.getLogger(DistinctProcessor.class);
     //main class
@@ -89,12 +93,14 @@ public class DistinctProcessor extends AbstractProcessor {
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .required(true)
             .defaultValue("/usr/hdp/2.6.1.0-129/spark/bin/")
+            .description("使用空格分割，输入绝对路径，先输入spark依赖包，再输入spark包")
             .build();
 
     //input hive table name
     private final static PropertyDescriptor INPUT_HIVE_TABLE = new PropertyDescriptor.Builder()
             .name("input")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .description("这部分输入的是需要输入的Hive表名，会使用SparkSQL进行读取，这部分会以-D的形式作为运行参数")
             .required(true)
             .defaultValue("")
             .build();
@@ -102,6 +108,7 @@ public class DistinctProcessor extends AbstractProcessor {
     private final static PropertyDescriptor OUTPUT_HIVE_TABLE = new PropertyDescriptor.Builder()
             .name("output")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .description("这部分输入的是需要输出的Hive表名，会使用SparkSQL进行读取，这部分会以-D的形式作为运行参数")
             .required(true)
             .defaultValue("")
             .build();
@@ -109,6 +116,7 @@ public class DistinctProcessor extends AbstractProcessor {
     private final static PropertyDescriptor HIVE_SERVER = new PropertyDescriptor.Builder()
             .name("hive server")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .description("hive的地址，这部分会以-D的形式作为运行参数")
             .required(true)
             .defaultValue("packone168")
             .build();
@@ -167,7 +175,19 @@ public class DistinctProcessor extends AbstractProcessor {
 
     @Override
     public void onTrigger(ProcessContext processContext, ProcessSession processSession) throws ProcessException {
-        final Map<PropertyDescriptor, String> env = processContext.getProperties();
+        //run bash
+        Process process = null;
+        try {
+            process = submitApplications(processContext);
+            process.waitFor();
+        } catch (InterruptedException | IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private Process submitApplications(final ProcessContext context)
+            throws InterruptedException, IOException {
+        final Map<PropertyDescriptor, String> env = context.getProperties();
         final String master;
         final String deploy_mode;
         if (Objects.equals(env.get(MASTER), "yarn")) {
@@ -180,78 +200,52 @@ public class DistinctProcessor extends AbstractProcessor {
             master = "spark://" + env.get(SPARK_IP);
             deploy_mode = env.get(DEPLOY_MODE);
         }
-        final String main_class = env.get(MAIN_CLASS);
-        final String spark_path = env.get(SPARK_PATH);
-        final String[] jar_path = env.get(JAR_PATH).split(",");
-
-
-        //initial spark runtime config
-        final String driver_memory = env.get(DRIVER_MEMORY);
-        final String executor_memory = env.get(EXECUTOR_MEMORY);
-        final String executor_num = env.get(EXECUTOR_NUM);
-        final String total_executor_cores = env.get(TOTAL_EXECUTOR_CORES);
-        //initial hive config
+        String sparkSubmitCMD =
+                getPropertyValue(SPARK_PATH, context) + "/bin/spark-submit";
         final String out = env.get(OUTPUT_HIVE_TABLE);
         final String in = env.get(INPUT_HIVE_TABLE);
         final String hive_server = env.get(HIVE_SERVER);
-        //generate spark submit script
-        StringBuilder sb = new StringBuilder();
-        sb.append(spark_path).append(File.separator)
-                .append("spark-submit ")
-                .append(" --master ").append(master)
-                .append(" --class ").append(main_class)
-                .append(" --deploy-mode ").append(deploy_mode)
-                .append(" --num-executors ").append(executor_num)
-                .append(" --driver-memory ").append(driver_memory).append("g")
-                .append(" --executor-memory ").append(executor_memory).append("g")
-                .append(" --total-executor-cores ").append(total_executor_cores)
-                .append(" --jars ");
-        for (String s : jar_path) {
-            sb.append(s).append(" ");
-        }
-        sb.append(" --driver-java-options " + "\"-Dhivein=").append(in).append(" -Dhiveout=").append(out).append(" -Dhiveserver=").append(hive_server).append(   "\"");
-        String script = sb.toString();
-        ProcessBuilder p = new ProcessBuilder();
-        p.command(script);
-        p.redirectErrorStream(true);
-        Process process = null;
-        try {
-            process = p.start();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        StringBuilder result = new StringBuilder();
-        final BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-        try {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                result.append(line);
-                logger.info(p.command().toString() + " --->: " + line);
-            }
-        } catch (IOException e) {
-            logger.warn("failed to read output from process", e);
-        } finally {
-            try {
-                reader.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+        String[] cmdArray = {
+                sparkSubmitCMD,
+                "--class",
+                getPropertyValue(MAIN_CLASS, context),
+                "--master",
+                master,
+                "--deploy-mode",
+                deploy_mode,
+                "--num-executors",
+                getPropertyValue(EXECUTOR_NUM, context),
+                "--driver-memory",
+                getPropertyValue(DRIVER_MEMORY, context),
+                "--executor-memory",
+                getPropertyValue(DRIVER_MEMORY, context),
+                "--total-executor-cores",
+                getPropertyValue(TOTAL_EXECUTOR_CORES, context),
+                "--jars",
+                getPropertyValue(JAR_PATH, context),
+                "--driver-java-options",
+                "\"-Dhivein=" + in + " -Dhiveserver=" + hive_server + " -Dhiveout=" + out + "\""
+        };
+        List<String> cmdList = new ArrayList<>();
+        cmdList.addAll(Arrays.asList(cmdArray));
+        ProcessBuilder pb = new ProcessBuilder(cmdList);
+
+        pb.redirectErrorStream(true);
+        Process sparkSubmit = pb.start();
+
+        sparkSubmit.waitFor();
+
+        InputStreamReader isr = new InputStreamReader(sparkSubmit.getInputStream());
+        BufferedReader br = new BufferedReader(isr);
+
+        String lineRead;
+        while ((lineRead = br.readLine()) != null) {
+            logger.debug(lineRead);
         }
 
-        try {
-            process.waitFor();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        int exit = process.exitValue();
-        if (exit != 0) {
-            try {
-                throw new IOException("failed to execute:" + p.command() + " with result:" + result);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
+        return sparkSubmit;
+    }
+    private String getPropertyValue(PropertyDescriptor property, final ProcessContext context) {
+        return context.getProperty(property).getValue();
     }
 }

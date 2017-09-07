@@ -14,5 +14,4 @@
 # limitations under the License.
 #WriteToLocalFile
 #DemoTestProcessor
-pub.sha0w.nifi.processors.DemoAvroProcessor
-pub.sha0w.nifi.processors.DemoAvroProcessorOneSecPause
+pub.sha0w.nifi.processors.DistinctProcessor

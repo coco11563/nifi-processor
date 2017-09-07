@@ -2,9 +2,8 @@
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
 import org.junit.Test;
-import pub.sha0w.nifi.processors.DemoDuplicateRemoveProcessor;
+import pub.sha0w.nifi.processors.useless.DemoDuplicateRemoveProcessor;
 
 public class TestDemoDuplicateRemoveProcessor {
     /**

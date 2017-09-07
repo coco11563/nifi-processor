@@ -1,4 +1,4 @@
-package pub.sha0w.nifi.processors;
+package pub.sha0w.nifi.processors.useless;
 
 
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
