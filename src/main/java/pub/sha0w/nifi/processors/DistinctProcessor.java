@@ -120,6 +120,21 @@ public class DistinctProcessor extends AbstractProcessor {
             .required(true)
             .defaultValue("packone168")
             .build();
+    private final static PropertyDescriptor MAIN_ARGS = new PropertyDescriptor.Builder()
+            .name("MianArgs")
+            .description("附加给JVM的参数，会加-D执行")
+            .required(true)
+            .build();
+    private final static PropertyDescriptor VAGUR_ARG = new PropertyDescriptor.Builder()
+            .name("VagueArgs")
+            .description("附加给JVM的参数，会加-D执行")
+            .required(true)
+            .build();
+    private final static PropertyDescriptor FK_ARG = new PropertyDescriptor.Builder()
+            .name("FKArgs")
+            .description("附加给JVM的参数，会加-D执行，需要记录的外键")
+            .required(true)
+            .build();
     // ip + port
     private static final PropertyDescriptor SPARK_IP = new PropertyDescriptor.Builder()
             .name("spark id")
@@ -202,6 +217,9 @@ public class DistinctProcessor extends AbstractProcessor {
         }
         String sparkSubmitCMD =
                 getPropertyValue(SPARK_PATH, context) + "/bin/spark-submit";
+        String mK = getPropertyValue(MAIN_ARGS, context);
+        String fK = getPropertyValue(FK_ARG, context);
+        String vK = getPropertyValue(VAGUR_ARG, context);
         final String out = env.get(OUTPUT_HIVE_TABLE);
         final String in = env.get(INPUT_HIVE_TABLE);
         final String hive_server = env.get(HIVE_SERVER);
@@ -224,7 +242,13 @@ public class DistinctProcessor extends AbstractProcessor {
                 "--jars",
                 getPropertyValue(JAR_PATH, context),
                 "--driver-java-options",
-                "\"-Dhivein=" + in + " -Dhiveserver=" + hive_server + " -Dhiveout=" + out + "\""
+                "\"-Dhivein=" + in +
+                        " -Dhiveserver=" + hive_server +
+                        " -Dhiveout=" + out +
+                        " -Dmk=" + mK +
+                        " -Dfk=" + fK +
+                        " -Dvk=" + vK +
+                        "\""
         };
         List<String> cmdList = new ArrayList<>();
         cmdList.addAll(Arrays.asList(cmdArray));
